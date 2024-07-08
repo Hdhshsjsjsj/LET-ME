@@ -8,15 +8,22 @@ from umongo import Instance, Document, fields
 from motor.motor_asyncio import AsyncIOMotorClient
 from marshmallow.exceptions import ValidationError
 from info import DATABASE_URI, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER
+from pymongo import MongoClient
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
+# MongoDB client setup
 client = AsyncIOMotorClient(DATABASE_URI)
 db = client[DATABASE_NAME]
 instance = Instance.from_db(db)
 
+# Synchronous MongoDB client for auto-delete functions
+sync_dbclient = MongoClient(DATABASE_URI)
+sync_db = sync_dbclient["Auto-Delete"]
+sync_col = sync_db["DATA"]
+
+# MongoDB Document definition for Media
 @instance.register
 class Media(Document):
     file_id = fields.StrField(attribute='_id')
@@ -32,6 +39,8 @@ class Media(Document):
         collection_name = COLLECTION_NAME
 
 
+
+# Function to save file in database
 async def save_file(media):
     """Save file in database"""
 
@@ -64,16 +73,11 @@ async def save_file(media):
             logger.info(f'{getattr(media, "file_name", "NO_FILE")} is saved to database')
             return True, 1
 
-
-
-async def get_search_results(query, file_type=None, max_results=10, offset=0, filter=False):
+# Function to get search results
+async def get_search_results(query, file_type=None, max_results=7, offset=0, filter=False):
     """For given query return (results, next_offset)"""
 
     query = query.strip()
-    #if filter:
-        #better ?
-        #query = query.replace(' ', r'(\s|\.|\+|\-|_)')
-        #raw_pattern = r'(\s|_|\-|\.|\+)' + query + r'(\s|_|\-|\.|\+)'
     if not query:
         raw_pattern = '.'
     elif ' ' not in query:
@@ -110,15 +114,14 @@ async def get_search_results(query, file_type=None, max_results=10, offset=0, fi
 
     return files, next_offset, total_results
 
-
-
+# Function to get file details
 async def get_file_details(query):
     filter = {'file_id': query}
     cursor = Media.find(filter)
     filedetails = await cursor.to_list(length=1)
     return filedetails
 
-
+# Function to encode file ID
 def encode_file_id(s: bytes) -> str:
     r = b""
     n = 0
@@ -135,11 +138,11 @@ def encode_file_id(s: bytes) -> str:
 
     return base64.urlsafe_b64encode(r).decode().rstrip("=")
 
-
+# Function to encode file reference
 def encode_file_ref(file_ref: bytes) -> str:
     return base64.urlsafe_b64encode(file_ref).decode().rstrip("=")
 
-
+# Function to unpack new file ID
 def unpack_new_file_id(new_file_id):
     """Return file_id, file_ref"""
     decoded = FileId.decode(new_file_id)
