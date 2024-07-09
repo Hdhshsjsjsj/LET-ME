@@ -12,4 +12,3 @@ aiohttp==3.9.5
 countryinfo
 datetime
 pytz
-pyrofork
