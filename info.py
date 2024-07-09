@@ -39,6 +39,7 @@ COLLECTION_NAME = environ.get('COLLECTION_NAME', 'Telegram_files')
 # Others
 LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002190351641'))
 SUPPORT_CHAT = environ.get('SUPPORT_CHAT', 'CINEMAWORLD_123')
+PORT = os.environ.get("PORT", "8080")
 P_TTI_SHOW_OFF = is_enabled((environ.get('P_TTI_SHOW_OFF', 'True')), False)
 IMDB = is_enabled((environ.get('IMDB', 'False')), True)
 SINGLE_BUTTON = is_enabled((environ.get('SINGLE_BUTTON', 'True')), False)
