@@ -111,3 +111,8 @@ Name - {}
 • ꜰᴜʟʟ ɴᴀᴍᴇ : 𝐋𝐄𝐎 𝐌𝐄𝐒𝐒𝐈
 • ᴜꜱᴇʀɴᴀᴍᴇ : @Leomessi_10_19 
 • ᴘᴇʀᴍᴀɴᴇɴᴛ ᴅᴍ ʟɪɴᴋ :  <a href='t.me/Leomessi_10_19'>ᴄʟɪᴄᴋ ʜᴇʀᴇ</a>"""
+    RESTART_TXT = """
+<b>Bᴏᴛ Rᴇsᴛᴀʀᴛᴇᴅ !
+📅 Dᴀᴛᴇ : <code>{}</code>
+⏰Tɪᴍᴇ : <code>{}</code>
+🌐 Tɪᴍᴇᴢᴏɴᴇ : <code>Asia/Kolkata</code></b>"""
