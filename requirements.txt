@@ -9,3 +9,6 @@ requests
 bs4
 imdbpy==2021.4.18
 aiohttp==3.9.5
+countryinfo
+datetime
+pytz
