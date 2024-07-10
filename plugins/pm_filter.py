@@ -39,7 +39,7 @@ async def give_filter(client, message):
 
 @Client.on_message(filters.private & filters.text & filters.incoming)
 async def pm_imdb(client, message):
-    content = message.text
+    content = message.text.strip( )
     if content.startswith("/") or content.startswith("#"):
         return
     search = message.text
