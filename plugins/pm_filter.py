@@ -30,44 +30,115 @@ BUTTONS = {}
 SPELL_CHECK = {}
 ENG_REP = "<b>Hello {} I could not find the movie you asked for 🥴</b>\n\n<b>Google, Yandex Click on any button and find the <u>CORRECT MOVIE NAME </u>and enter it here but the movie will be available 🙃\n\nIf you do not receive the movie even after entering the correct name ...</b> <code>@admin type movie name</code> <b>Inform the admin in this format .. We will upload within 24 hours 😇</b>"
 
-@Client.on_message(filters.group & filters.text & filters.incoming)
+@Client.on_message(filters.command('autofilter'))
+async def fil_mod(client, message): 
+      mode_on = ["yes", "on", "true"]
+      mode_of = ["no", "off", "false"]
+
+      try: 
+         args = message.text.split(None, 1)[1].lower() 
+      except: 
+         return await message.reply("**Iɴᴄᴏᴍᴩʟᴇᴛᴇ Cᴏᴍᴍᴀɴᴅ...**")
+      
+      m = await message.reply("**Sᴇᴛᴛɪɴɢs.../**")
+
+      if args in mode_on:
+          FILTER_MODE[str(message.chat.id)] = "True" 
+          await m.edit("**Aᴜᴛᴏ-Fɪʟᴛᴇʀ Eɴᴀʙʟᴇᴅ**")
+      
+      elif args in mode_of:
+          FILTER_MODE[str(message.chat.id)] = "False"
+          await m.edit("**Aᴜᴛᴏ-Fɪʟᴛᴇʀ Dɪsᴀʙʟᴇᴅ**")
+      else:
+          await m.edit("Usᴇ :- /autofilter on Oʀ /autofilter off")
+
+@Client.on_message((filters.group | filters.private) & filters.text & filters.incoming)
 async def give_filter(client, message):
     k = await manual_filters(client, message)
     if k == False:
         await auto_filter(client, message)
 
 
-@Client.on_message(filters.private & filters.text & filters.incoming)
-async def pm_imdb(client, message):
-    content = message.text.strip()
-    if content.startswith("/") or content.startswith("#"):
-        return
-    search = message.text
-    temp_files, temp_offset, total_results = await get_search_results(query=search.lower(), offset=0, filter=True)
-    if total_results == 0:
-        reqst_gle = search.replace(" ", "-")
-        return await message.reply(text=f"<b><i>Hey {message.from_user.mention}\n\nYour requested movie {search} Not found\n\nI think this movie not available in my database\n\nCheck the correct spelling\n\nCheck this movie ott release or not</i></b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("NOT AVAILABLE", callback_data='nomovie')]]))
-    else:
-        user = message.from_user.id
-        key = f"{message.id}"
-        BUTTONS[key] = search
-        req = message.from_user.id if message.from_user else 0
-        s = await message.reply_text(text="searching your movie....")
-        await s.delete()
-        k = await message.reply_text(
-            text=f"<b><i>Hello {message.from_user.mention}\n\nYour requested movie {search} Found in my database\n\n Click the download button\n\nAnd select your quality</i></b>",
-            reply_markup=InlineKeyboardMarkup(
-                [
-                    [
-                        InlineKeyboardButton(f"DOWNLOAD {search}", callback_data=f"movie_{key}")
-                    ]
-                ]
-            ),
-        )
-        
-        # Delete the message after 200 seconds
-        await asyncio.sleep(200)
-        await k.delete()
+@Client.on_callback_query(filters.regex(r"^next"))
+async def next_page(bot, query):
+    ident, req, key, offset = query.data.split("_")
+    if int(req) not in [query.from_user.id, 0]:
+        return await query.answer("oKda", show_alert=True)
+    try:
+        offset = int(offset)
+    except:
+        offset = 0
+    search = BUTTONS.get(key)
+    if not search:
+        await query.answer("You are using one of my old messages, please send the request again.", show_alert=True)
+        return
+
+    files, n_offset, total = await get_search_results(search, offset=offset, filter=True)
+    try:
+        n_offset = int(n_offset)
+    except:
+        n_offset = 0
+
+    if not files:
+        return
+    settings = await get_settings(query.message.chat.id)
+    if settings['button']:
+        btn = [
+            [
+                InlineKeyboardButton(
+                    text=f"[{get_size(file.file_size)}] {file.file_name}", callback_data=f'files#{file.file_id}'
+                ),
+            ]
+            for file in files
+        ]
+    else:
+        btn = [
+            [
+                InlineKeyboardButton(
+                    text=f"{file.file_name}", callback_data=f'files#{file.file_id}'
+                ),
+                InlineKeyboardButton(
+                    text=f"{get_size(file.file_size)}",
+                    callback_data=f'files_#{file.file_id}',
+                ),
+            ]
+            for file in files
+        ]
+    
+    if 0 < offset <= 6:
+        off_set = 0
+    elif offset == 0:
+        off_set = None
+    else:
+        off_set = offset - 6
+    if n_offset == 0:
+        btn.append(
+            [InlineKeyboardButton("‹‹‹ Bᴀᴄᴋ", callback_data=f"next_{req}_{key}_{off_set}"),
+             InlineKeyboardButton(f"📃 Pᴀɢᴇs {math.ceil(int(offset) / 10) + 1} / {math.ceil(total / 10)}",
+                                  callback_data="pages")]
+        )
+    elif off_set is None:
+        btn.append(
+            [InlineKeyboardButton(f"🗓 {math.ceil(int(offset) / 10) + 1} / {math.ceil(total / 10)}", callback_data="pages"),
+             InlineKeyboardButton("Nᴇxᴛ ›››", callback_data=f"next_{req}_{key}_{n_offset}")])
+    else:
+        btn.append(
+            [
+                InlineKeyboardButton("‹‹‹ Bᴀᴄᴋ", callback_data=f"next_{req}_{key}_{off_set}"),
+                InlineKeyboardButton(f"🗓 {math.ceil(int(offset) / 10) + 1} / {math.ceil(total / 10)}", callback_data="pages"),
+                InlineKeyboardButton("Nᴇxᴛ ›››", callback_data=f"next_{req}_{key}_{n_offset}")
+            ],
+        )
+    btn.insert(0, [
+        InlineKeyboardButton("😌 Cʜᴇᴄᴋ Bᴏᴛ PM 😌", url=f"https://t.me/{temp.U_NAME}")
+    ])
+    try:
+        await query.edit_message_reply_markup(
+            reply_markup=InlineKeyboardMarkup(btn)
+        )
+    except MessageNotModified:
+        pass
+    await query.answer()
 
 
 @Client.on_callback_query(filters.regex(r"^next"))
