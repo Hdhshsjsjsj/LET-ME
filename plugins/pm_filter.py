@@ -37,6 +37,39 @@ async def give_filter(client, message):
         await auto_filter(client, message)
 
 
+@Client.on_message(filters.private & filters.text & filters.incoming)
+async def pm_imdb(client, message):
+    content = message.text
+    if content.startswith("/") or content.startswith("#"):
+        return
+    search = message.text
+    temp_files, temp_offset, total_results = await get_search_results(query=search.lower(), offset=0, filter=True)
+    if total_results == 0:
+        reqst_gle = search.replace(" ", "-")
+        return await message.reply(text=f"<b><i>Hey {message.from_user.mention}\n\nYour requested movie {search} Not found\n\nI think this movie not available in my database\n\nCheck the correct spelling\n\nCheck this movie ott release or not</i></b>", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("NOT AVAILABLE", callback_data='nomovie')]]))
+    else:
+        user = message.from_user.id
+        key = f"{message.id}"
+        BUTTONS[key] = search
+        req = message.from_user.id if message.from_user else 0
+        s = await message.reply_text(text="searching your movie....")
+        await s.delete()
+        k = await message.reply_text(
+            text=f"<b><i>Hello {message.from_user.mention}\n\nYour requested movie {search} Found in my database\n\n Click the download button\n\nAnd select your quality</i></b>",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(f"DOWNLOAD {search}", callback_data=f"movie_{key}")
+                    ]
+                ]
+            ),
+        )
+        
+        # Delete the message after 200 seconds
+        await asyncio.sleep(200)
+        await k.delete()
+
+
 @Client.on_callback_query(filters.regex(r"^next"))
 async def next_page(bot, query):
     ident, req, key, offset = query.data.split("_")
@@ -138,6 +171,85 @@ async def advantage_spoll_choker(bot, query):
             k = await query.message.edit('')
             await asyncio.sleep(10)
             await k.delete()
+
+
+@Client.on_callback_query(filters.regex(r"^movie"))
+async def get_file(bot, query):
+    _, key = query.data.split("_")
+    search = BUTTONS[key]
+    
+    # Add quality selection buttons
+    btn = [
+        [
+            InlineKeyboardButton("1080p", callback_data=f'quality_1080p_{key}'),
+            InlineKeyboardButton("720p", callback_data=f'quality_720p_{key}'),
+            InlineKeyboardButton("480p", callback_data=f'quality_480p_{key}')
+        ],
+        [
+            InlineKeyboardButton("Other Files", callback_data=f'quality_other_{key}')
+        ],
+        [
+            InlineKeyboardButton("CLOSE", callback_data='close_data')
+        ]
+    ]
+
+    await query.edit_message_reply_markup(
+        reply_markup=InlineKeyboardMarkup(btn)
+)
+
+
+@Client.on_callback_query(filters.regex(r"^quality"))
+async def select_quality(bot, query):
+    _, quality, key = query.data.split("_")
+    search = BUTTONS[key]
+    
+    files, offset, total_results = await get_search_results(search, offset=0, max_results=20, filter=True)
+    
+    # Filter files based on the selected quality
+    if quality != "other":
+        quality_files = [f for f in files if quality in f.file_name.lower()]
+    else:
+        quality_files = files
+
+    btn = []
+
+    # Add file buttons grouped in pairs
+    for i in range(0, len(quality_files), 2):
+        if i + 1 < len(quality_files):
+            btn.append([
+                InlineKeyboardButton(
+                    text=f"[{get_size(quality_files[i].file_size)}]",
+                    callback_data=f'lallus#{quality_files[i].file_id}'
+                ),
+                InlineKeyboardButton(
+                    text=f"[{get_size(quality_files[i + 1].file_size)}]",
+                    callback_data=f'lallus#{quality_files[i + 1].file_id}'
+                )
+            ])
+        else:
+            btn.append([
+                InlineKeyboardButton(
+                    text=f"[{get_size(quality_files[i].file_size)}]",
+                    callback_data=f'lallus#{quality_files[i].file_id}'
+                )
+            ])
+
+    if offset != "":
+        req = query.message.from_user.id if query.message.from_user else 0
+        btn.append(
+            [InlineKeyboardButton(text="BACK", callback_data=f"movie_{key}")]
+        )
+    else:
+        btn.append(
+            [InlineKeyboardButton(text="NOT AVAILABLE", callback_data="pages")]
+        )
+        btn.append(
+            [InlineKeyboardButton(text="BACK", callback_data=f"movie_{key}")]
+        )
+
+    await query.edit_message_reply_markup(
+        reply_markup=InlineKeyboardMarkup(btn)
+)
 
 
 @Client.on_callback_query()
