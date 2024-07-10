@@ -13,3 +13,4 @@ countryinfo
 datetime
 pytz
 pyrofork
+uvloop
