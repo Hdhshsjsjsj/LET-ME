@@ -97,7 +97,7 @@ Added By - {}
 ID - <code>{}</code>
 Name - {}
 """
-    CUSTOM_FILE_CAPTION = """<b>🎟 ʀᴇǫᴜsᴛᴇᴅ ʙʏ : {mention}</b>
+    CAPTION = """<b>🎟 ʀᴇǫᴜsᴛᴇᴅ ʙʏ : {mention}</b>
 
 <code>{file_name}</code>
 =========== • ✠ • ===========
