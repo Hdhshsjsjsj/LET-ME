@@ -167,7 +167,6 @@ async def advantage_spoll_choker(bot, query):
 
 @Client.on_callback_query(filters.regex(r"^movie"))
 async def get_file(bot, query):
-       key = query.data.split("_")
     search = BUTTONS[key]
     
     # Add quality selection buttons
